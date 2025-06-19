@@ -1,4 +1,4 @@
-import torch as torch
+import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
@@ -10,7 +10,7 @@ def block_diag_mask(tokens, start_token_id):
     segment_ids = torch.cumsum(is_start, axis=1)
     seg_i = torch.unsqueeze(segment_ids, 2)                          
     seg_j = torch.unsqueeze(segment_ids, 1)                        
-    mask   = torch.eq(seg_i, seg_j)
+    mask   = ~torch.eq(seg_i, seg_j)
     mask = torch.unsqueeze(mask, 1).to(tokens.get_device()) # [batch, 1, seq, seq]                                                        
 
     return mask
@@ -34,7 +34,7 @@ def resetting_positions(tokens: torch.Tensor, start_token_id: int) -> torch.Tens
     is_start = torch.cat([first_col, is_start[:, 1:]], dim=1)         # [B, T]
 
     # 3) make a [0,1,2,…,T-1] index array for each batch
-    positions = torch.arange(seq_len, dtype=torch.int32, device=tokens.device)  # [T]
+    positions = torch.arange(seq_len, dtype=torch.long, device=tokens.device)  # [T]
     positions = positions.unsqueeze(0).expand(batch_size, -1)         # [B, T]
 
     # 4) pick out the indices where resets happen (else 0)
@@ -74,24 +74,17 @@ class TransformerBlock(nn.Module):
 
         self.dol1 = nn.Dropout(dropout)
         self.dol2 = nn.Dropout(dropout)
-        self.dol3 = nn.Dropout(dropout)
 
         self.ln1 = nn.LayerNorm(embed_dim, eps=1e-6)
         self.ln2 = nn.LayerNorm(embed_dim, eps=1e-6)
 
-        self.softmax = nn.Softmax(dim=-1)
-
-        self.KQV = nn.Linear(
-            embed_dim, 3 * embed_dim, bias=False
-        )
-        self.WO = nn.Linear(embed_dim, embed_dim, bias=False)
+        self.mha = nn.MultiHeadAttention(embed_dim, heads, dropout=dropout, batch_first=True)
 
         self.layer_up = nn.Linear(embed_dim, ff_dim, bias=True)
         self.layer_down = nn.Linear(ff_dim, embed_dim, bias=True)
 
 
-    def forward(self, x):
-        x_embeds, tokens = x
+    def forward(self, x_embeds, tokens):
         x_embeds = self.attention(x_embeds, tokens)
         x_embeds = self.ffnn(x_embeds)
 
@@ -102,22 +95,20 @@ class TransformerBlock(nn.Module):
         batch = x_embeds.shape[0]
         seq = x_embeds.shape[1]
 
-        x_kqv = self.KQV(x_embeds)  # [batch, seq, embed_dim]
-        x_kqv = torch.reshape(x_kqv, [batch, seq, self.heads, 3, self.head_dim])
-        x_kqv = torch.permute(x_kqv, [0, 2, 3, 1, 4])
-        x_k = x_kqv[:, :, 0, :, :] # [batch, heads, seq, head_dim]
-        x_q = x_kqv[:, :, 1, :, :] # [batch, heads, seq, head_dim]
-        x_v = x_kqv[:, :, 2, :, :] # [batch, heads, seq, head_dim]
-
-        mask_causal = torch.triu(torch.ones(1, 1, seq, seq), diagonal=1).to(x_embeds.get_device())
 
         if not self.start_token_id is None:
-            mask = block_diag_mask(tokens, self.start_token_id)
-            mask_causal = torch.multiply(mask, mask_causal)  # [batch, 1, seq, seq]
+            block_mask = block_diag_mask(tokens, self.start_token_id)
+            attn_mask = future_mask.unsqueeze(0).unsqueeze(0) | block_mask
+        else:
+            attn_mask = future_mask.unsqueeze(0).unsqueeze(0) 
+
+        attention, _ = self.mha(x_embeds, x_embeds, x_embeds)
+
+        
 
         attention = nn.functional.scaled_dot_product_attention(x_q, x_k, x_v, 
                                                                 dropout_p=self.dropout,
-                                                                attn_mask=mask_causal)
+                                                                attn_mask=attn_mask)
 
 
         attention = torch.permute(attention, [0, 2, 1, 3])  # [batch, seq, heads, head_dim]
@@ -173,7 +164,7 @@ class Transformer(nn.Module):
         self.word_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=pad_token_id)
         self.pos_embed = nn.Embedding(max_seq_len, embed_dim)
 
-        self.tf_blocks = nn.ModuleList([TransformerBlock(vocab_size, max_seq_len, heads, embed_dim, ff_dim, dropout, start_token_id) for _ in range(tf_blocks)])
+        self.block_list = nn.ModuleList([TransformerBlock(vocab_size, max_seq_len, heads, embed_dim, ff_dim, dropout, start_token_id) for _ in range(tf_blocks)])
 
         self.unembed_b = nn.Parameter(torch.zeros(vocab_size, dtype=torch.float32))
     
@@ -182,8 +173,8 @@ class Transformer(nn.Module):
 
         x, tokens = self.embed(tokens)
             
-        for block in self.tf_blocks:
-            x = block.forward([x, tokens])
+        for block in self.block_list:
+            x = block(x, tokens)
         
         x = self.unembed(x)
 
