@@ -10,8 +10,7 @@ def block_diag_mask(tokens, start_token_id):
     segment_ids = torch.cumsum(is_start, axis=1)
     seg_i = torch.unsqueeze(segment_ids, 2)                          
     seg_j = torch.unsqueeze(segment_ids, 1)                        
-    mask   = ~torch.eq(seg_i, seg_j)
-    mask = torch.unsqueeze(mask, 1).to(tokens.get_device()) # [batch, 1, seq, seq]                                                        
+    mask   = ~torch.eq(seg_i, seg_j).to(tokens.get_device())#  [batch,  seq, seq]                                                      
 
     return mask
 
@@ -78,7 +77,7 @@ class TransformerBlock(nn.Module):
         self.ln1 = nn.LayerNorm(embed_dim, eps=1e-6)
         self.ln2 = nn.LayerNorm(embed_dim, eps=1e-6)
 
-        self.mha = nn.MultiHeadAttention(embed_dim, heads, dropout=dropout, batch_first=True)
+        self.mha = nn.MultiheadAttention(embed_dim, heads, dropout=dropout, batch_first=True)
 
         self.layer_up = nn.Linear(embed_dim, ff_dim, bias=True)
         self.layer_down = nn.Linear(ff_dim, embed_dim, bias=True)
@@ -96,24 +95,18 @@ class TransformerBlock(nn.Module):
         seq = x_embeds.shape[1]
 
 
-        if not self.start_token_id is None:
-            block_mask = block_diag_mask(tokens, self.start_token_id)
-            attn_mask = future_mask.unsqueeze(0).unsqueeze(0) | block_mask
-        else:
-            attn_mask = future_mask.unsqueeze(0).unsqueeze(0) 
-
-        attention, _ = self.mha(x_embeds, x_embeds, x_embeds)
-
+        future_mask = torch.triu(torch.ones(seq, seq, dtype=torch.bool), diagonal=1).to(x_embeds.get_device())
+        future_mask = future_mask.unsqueeze(0).unsqueeze(0) # [1, 1 seq, seq]
+        block_mask = block_diag_mask(tokens, self.start_token_id).unsqueeze(1) # [batch, 1, seq, seq]
         
+        attn_mask = future_mask | block_mask # [batch, 1, seq, seq]
+        attn_mask = attn_mask.expand(batch, self.heads, seq, seq)
+        attn_mask = attn_mask.reshape(batch*self.heads, seq, seq) 
 
-        attention = nn.functional.scaled_dot_product_attention(x_q, x_k, x_v, 
-                                                                dropout_p=self.dropout,
-                                                                attn_mask=attn_mask)
+        out, _ = self.mha(x_embeds, x_embeds, x_embeds,
+                            attn_mask = attn_mask
+                            )
 
-
-        attention = torch.permute(attention, [0, 2, 1, 3])  # [batch, seq, heads, head_dim]
-        attention = torch.reshape(attention, [batch, seq, self.embed_dim])
-        out = self.WO(attention)  # [batch, seq, embed_dim]
         
         out = self.dol1(out)
         out = self.ln1(out)
@@ -171,7 +164,7 @@ class Transformer(nn.Module):
         
     def forward(self, tokens):
 
-        x, tokens = self.embed(tokens)
+        x = self.embed(tokens)
             
         for block in self.block_list:
             x = block(x, tokens)
@@ -194,7 +187,7 @@ class Transformer(nn.Module):
         x_embeds = x_embeds + pos_embeds
         x_embeds = self.dol(x_embeds)
 
-        return x_embeds, tokens
+        return x_embeds
 
     def unembed(self, x_embeds):
         w_embed = torch.transpose(self.word_embed.weight, 0, 1)  # [embed_dim, vocab_size]
