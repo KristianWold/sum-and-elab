@@ -2,20 +2,221 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
+import math
+
+class Transformer(nn.Module):
+    def __init__(
+        self,
+        vocab_size,
+        max_seq_len,
+        tf_blocks,
+        embed_dim,
+        heads,
+        ff_dim,
+        dropout=0.1,
+        start_token_id=None,
+        use_weight_tying=True,
+    ):
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.heads = heads
+        self.max_seq_len = max_seq_len
+        self.tf_blocks = tf_blocks
+        self.ff_dim = ff_dim
+        self.dropout = dropout
+        self.start_token_id = start_token_id
+        self.use_weight_tying = use_weight_tying
+
+        self.head_dim = embed_dim // heads
+        self.dol = nn.Dropout(dropout)
+
+        # embedding
+        self.word_embed = nn.Embedding(vocab_size, embed_dim)
+        self.pos_embed = nn.Embedding(max_seq_len, embed_dim)
+
+        k = 1/math.sqrt(vocab_size)
+        torch.nn.init.normal_(self.word_embed.weight, mean=0.0, std=k)
+        torch.nn.init.normal_(self.pos_embed.weight, mean=0.0, std=k)
+
+        # transformer layers
+        self.layer_list = nn.ModuleList([TransformerBlock(vocab_size, max_seq_len, heads, embed_dim, ff_dim, dropout, start_token_id) for _ in range(tf_blocks)])
+
+        # unembedding
+        if not use_weight_tying:
+            self.word_unembed = nn.Linear(embed_dim, vocab_size, bias=False).weight
+
+        self.unembed_b = nn.Parameter(torch.zeros(vocab_size, dtype=torch.float32))  # bias for unembedding
+    
+    def forward(self, tokens):
+
+        x = self.embed(tokens)
+            
+        for block in self.layer_list:
+            x = block(x, tokens)
+        
+        x = self.unembed(x)
+
+        return x
+    
+    def embed(self, tokens):
+        seq = tokens.shape[1]
+        if seq > self.max_seq_len:
+            tokens = tokens[:, -self.max_seq_len :] # truncate to max_seq_len
+            seq = self.max_seq_len
+
+        x_embeds = self.word_embed(tokens)  # [batch, seq, embed_dim]
+
+        pos_ids = resetting_positions(tokens, self.start_token_id) # reset position indices at start tokens
+        pos_embeds = self.pos_embed(pos_ids)
+
+        x_embeds = x_embeds + pos_embeds
+        x_embeds = self.dol(x_embeds) # dropout embeddings
+
+        return x_embeds
+
+    def unembed(self, x_embeds):
+        if self.use_weight_tying:
+            word_unembed = self.word_embed.weight
+        else:
+            word_unembed = self.word_unembed
+
+        logits = x_embeds @ word_unembed.T + self.unembed_b
+
+        return logits
 
 
-def block_diag_mask(tokens, start_token_id):
+class TransformerBlock(nn.Module):
+    def __init__(
+        self,
+        vocab_size,
+        max_seq_len,
+        heads,
+        embed_dim,
+        ff_dim,
+        dropout,
+        start_token_id,
 
-    is_start = torch.eq(tokens, start_token_id)
-    segment_ids = torch.cumsum(is_start, axis=1)
-    seg_i = torch.unsqueeze(segment_ids, 2)                          
-    seg_j = torch.unsqueeze(segment_ids, 1)                        
-    mask   = ~torch.eq(seg_i, seg_j).to(tokens.get_device())#  [batch,  seq, seq]                                                      
+    ):
+        super().__init__()
+        self.vocab_size = vocab_size
+        self.embed_dim = embed_dim
+        self.heads = heads
+        self.max_seq_len = max_seq_len
+        self.ff_dim = ff_dim
+        self.dropout = dropout
+        self.start_token_id = start_token_id
+
+        self.head_dim = embed_dim // heads
+
+        self.dol1 = nn.Dropout(dropout)
+        self.dol2 = nn.Dropout(dropout)
+        self.do_attn = nn.Dropout(dropout)
+
+        self.ln1 = nn.LayerNorm(embed_dim, eps=1e-6)
+        self.ln2 = nn.LayerNorm(embed_dim, eps=1e-6)
+
+        self.KQV = nn.Linear(embed_dim, embed_dim * 3, bias=False)
+        self.WO = nn.Linear(embed_dim, embed_dim, bias=False)
+
+        self.layer_up = nn.Linear(embed_dim, ff_dim, bias=True)
+        self.layer_down = nn.Linear(ff_dim, embed_dim, bias=True)
+
+
+    def forward(self, x_embeds, tokens):
+        x_embeds = self.attention(x_embeds, tokens)
+        x_embeds = self.ffnn(x_embeds)
+
+        return x_embeds
+
+
+    def attention(self, x_embeds, tokens):
+        batch = x_embeds.shape[0]
+        seq = x_embeds.shape[1]
+
+        x_kqv = self.KQV(x_embeds)  # [batch, seq, 3*heads*head_dim]
+        x_kqv = torch.reshape(x_kqv, [batch, seq, 3, self.heads, self.head_dim])
+        x_kqv = torch.permute(x_kqv, [0, 3, 2, 1, 4])
+
+        x_k = x_kqv[:, :, 0, :, :] # keys, [batch, heads, seq, head_dim]
+        x_q = x_kqv[:, :, 1, :, :] # queries
+        x_v = x_kqv[:, :, 2, :, :] # values
+
+        # compute mask
+
+        causal_mask = get_causal_mask(tokens).unsqueeze(1)  # [batch, 1, seq, seq]
+        block_mask = get_block_diag_mask(tokens, self.start_token_id).unsqueeze(1) # [batch, 1, seq, seq]
+        
+        mask = causal_mask | block_mask # [batch, 1, seq, seq]
+        mask = mask.expand(batch, self.heads, seq, seq)
+
+        # compute attention
+
+        attn = torch.matmul(x_q, x_k.transpose(-1, -2))  # [batch, heads, seq, seq]
+        attn = attn / math.sqrt(self.head_dim)  # scale attention scores
+
+        attn_masked = attn.masked_fill(mask, float("-inf"))  # [batch, heads, seq, seq]
+        attn_masked = F.softmax(attn_masked, dim=-1)  # softmax over the last dimension
+        attn_masked = self.do_attn(attn_masked)  # dropout 
+
+        # compute weighted output
+
+        out = torch.matmul(attn_masked, x_v)  # [batch, heads, seq, head_dim]
+        out = torch.permute(out, [0, 2, 1, 3])
+        out = torch.reshape(out, [batch, seq, self.embed_dim])
+        out = self.WO(out)  # [batch, seq, embed_dim]
+        
+        # apply dropout, layer norm and residual connection
+
+        out = self.dol1(out)
+        out = self.ln1(out)
+        out = out + x_embeds
+
+        return out
+    
+    def ffnn(self, x_embeds):
+        """
+        Feed forward neural network (FFNN)
+        """
+
+        out = self.layer_up(x_embeds) # scale up
+        out = F.relu(out)             # nonlinearity  
+        out = self.layer_down(out)    # scale down   '
+
+        # apply dropout, layer norm and residual connection 
+        out = self.dol2(out)
+        out = self.ln2(out)
+        out = out + x_embeds
+
+        return out
+
+
+def get_causal_mask(tokens):
+    """
+    Returns a causal mask for the given tokens.
+    """
+    batch_size, seq_len = tokens.size()
+    mask = torch.triu(torch.ones(seq_len, seq_len, dtype=torch.bool), diagonal=1)
+    mask = mask.unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, seq_len, seq_len]
+    mask = mask.to(tokens.device)  # Move mask to the same device as tokens
 
     return mask
 
 
-def resetting_positions(tokens: torch.Tensor, start_token_id: int) -> torch.Tensor:
+def get_block_diag_mask(tokens, start_token_id):
+    """
+    Returns a block diagonal mask for cutting attention across start tokens.
+    """
+    is_start = torch.eq(tokens, start_token_id)
+    segment_ids = torch.cumsum(is_start, axis=1)
+    seg_i = torch.unsqueeze(segment_ids, 2)                          
+    seg_j = torch.unsqueeze(segment_ids, 1)                        
+    mask   = ~torch.eq(seg_i, seg_j).to(tokens.device)#  [batch,  seq, seq]                                                      
+
+    return mask
+
+
+def resetting_positions(tokens, start_token_id):
     """
     tokens:          int Tensor of shape [batch, seq_len]
     start_token_id:  scalar int — the ID of your “start” token
@@ -46,152 +247,3 @@ def resetting_positions(tokens: torch.Tensor, start_token_id: int) -> torch.Tens
     # 6) subtract to get “position since last reset”
     rel_pos = positions - last_start                                 # [B, T]
     return rel_pos
-
-
-class TransformerBlock(nn.Module):
-    def __init__(
-        self,
-        vocab_size,
-        max_seq_len,
-        heads,
-        embed_dim,
-        ff_dim,
-        dropout,
-        start_token_id,
-
-    ):
-        super().__init__()
-        self.vocab_size = vocab_size
-        self.embed_dim = embed_dim
-        self.heads = heads
-        self.max_seq_len = max_seq_len
-        self.ff_dim = ff_dim
-        self.dropout = dropout
-        self.start_token_id = start_token_id
-
-        self.head_dim = embed_dim // heads
-
-        self.dol1 = nn.Dropout(dropout)
-        self.dol2 = nn.Dropout(dropout)
-
-        self.ln1 = nn.LayerNorm(embed_dim, eps=1e-6)
-        self.ln2 = nn.LayerNorm(embed_dim, eps=1e-6)
-
-        self.mha = nn.MultiheadAttention(embed_dim, heads, dropout=dropout, batch_first=True)
-
-        self.layer_up = nn.Linear(embed_dim, ff_dim, bias=True)
-        self.layer_down = nn.Linear(ff_dim, embed_dim, bias=True)
-
-
-    def forward(self, x_embeds, tokens):
-        x_embeds = self.attention(x_embeds, tokens)
-        x_embeds = self.ffnn(x_embeds)
-
-        return x_embeds
-
-
-    def attention(self, x_embeds, tokens):
-        batch = x_embeds.shape[0]
-        seq = x_embeds.shape[1]
-
-
-        future_mask = torch.triu(torch.ones(seq, seq, dtype=torch.bool), diagonal=1).to(x_embeds.get_device())
-        future_mask = future_mask.unsqueeze(0).unsqueeze(0) # [1, 1 seq, seq]
-        block_mask = block_diag_mask(tokens, self.start_token_id).unsqueeze(1) # [batch, 1, seq, seq]
-        
-        attn_mask = future_mask | block_mask # [batch, 1, seq, seq]
-        attn_mask = attn_mask.expand(batch, self.heads, seq, seq)
-        attn_mask = attn_mask.reshape(batch*self.heads, seq, seq) 
-
-        out, _ = self.mha(x_embeds, x_embeds, x_embeds,
-                            attn_mask = attn_mask
-                            )
-
-        
-        out = self.dol1(out)
-        out = self.ln1(out)
-        # pre-norm to keep gradients alive
-        out = out + x_embeds
-
-        return out
-    
-    def ffnn(self, x_embeds):
-        out = self.layer_up(x_embeds)
-        out = F.relu(out)
-        out = self.layer_down(out)
-        out = self.dol2(out)
-        out = self.ln2(out)
-
-        out = out + x_embeds
-
-        return out
-    
-
-class Transformer(nn.Module):
-    def __init__(
-        self,
-        vocab_size,
-        max_seq_len,
-        tf_blocks,
-        embed_dim,
-        heads,
-        ff_dim,
-        dropout=0.1,
-        pad_token_id=None,
-        start_token_id=None,
-    ):
-        super().__init__()
-        self.vocab_size = vocab_size
-        self.embed_dim = embed_dim
-        self.heads = heads
-        self.max_seq_len = max_seq_len
-        self.tf_blocks = tf_blocks
-        self.ff_dim = ff_dim
-        self.dropout = dropout
-        self.pad_token_id = pad_token_id
-        self.start_token_id = start_token_id
-
-        self.head_dim = embed_dim // heads
-        self.dol = nn.Dropout(dropout)
-
-        self.word_embed = nn.Embedding(vocab_size, embed_dim, padding_idx=pad_token_id)
-        self.pos_embed = nn.Embedding(max_seq_len, embed_dim)
-
-        self.block_list = nn.ModuleList([TransformerBlock(vocab_size, max_seq_len, heads, embed_dim, ff_dim, dropout, start_token_id) for _ in range(tf_blocks)])
-
-        self.unembed_b = nn.Parameter(torch.zeros(vocab_size, dtype=torch.float32))
-    
-        
-    def forward(self, tokens):
-
-        x = self.embed(tokens)
-            
-        for block in self.block_list:
-            x = block(x, tokens)
-        
-        x = self.unembed(x)
-
-        return x
-    
-    def embed(self, tokens, training=False):
-        seq = tokens.shape[1]
-        if seq > self.max_seq_len:
-            tokens = tokens[:, -self.max_seq_len :]
-            seq = self.max_seq_len
-
-        x_embeds = self.word_embed(tokens)  # [batch, seq, embed_dim]
-
-        pos_ids = resetting_positions(tokens, self.start_token_id)
-        pos_embeds = self.pos_embed(pos_ids)  # [seq, embed_dim]
-
-        x_embeds = x_embeds + pos_embeds
-        x_embeds = self.dol(x_embeds)
-
-        return x_embeds
-
-    def unembed(self, x_embeds):
-        w_embed = torch.transpose(self.word_embed.weight, 0, 1)  # [embed_dim, vocab_size]
-
-        logits = x_embeds @ w_embed + self.unembed_b
-
-        return logits
