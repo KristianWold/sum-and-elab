@@ -1,18 +1,27 @@
 import unicodedata
 import os
 import numpy as np
-import tensorflow as tf
+import re
 
 import textwrap
 import ipywidgets as widgets
 from IPython.display import display
 
-def normalize_to_ascii(s: str) -> str:
-    # 1) Decompose Unicode characters (e.g. é → e +  ́)
-    # 2) Drop the non-ASCII combining marks in the encode step
-    normalized = unicodedata.normalize('NFKD', s)
-    ascii_bytes = normalized.encode('ascii', 'ignore')
+def normalize_to_ascii(text):
+    # 1) Decompose Unicode characters
+    text_normalized = unicodedata.normalize('NFKD', text)
+
+    # 2) Drop the non-ASCII combining marks
+    ascii_bytes = text_normalized.encode('ascii', 'ignore')
     return ascii_bytes.decode('ascii')
+
+
+def clean_text(text):
+    rcw = re.compile(r"\s+")
+    text = text.replace("\n", " ").replace("\r", " ")
+    text = rcw.sub(" ", text).strip()
+
+    return text.lower()
 
 
 def read_first_n(directory_path, n):
@@ -40,31 +49,6 @@ def word_split(line):
     word_list = normalized_line.strip().split()
     word_list = [list(word) for word in word_list]
     return word_list
-
-
-def sample_batch(contents, 
-                 batch_size, 
-                 tokenizer, 
-                 max_seq_len):
-    
-    samples = len(contents)
-    indicies_list = []
-    for b in range(batch_size):
-        
-        idx = np.random.randint(0, samples)
-        text = contents[idx]
-        length = text.shape[1]
-        if length <= max_seq_len:
-            continue
-        else:
-            start = np.random.randint(0, length - max_seq_len)
-            indicies = text[:,start:start + max_seq_len]
-            indicies_list.append(indicies)
-    
-    indicies_list = tf.cast(tf.concat(indicies_list, axis=0), tf.int32)
-    y_true = tf.cast(indicies_list, tf.int32)
-
-    return indicies_list, y_true
 
 
 def fused_qa(question_list, answer_list, tokenizer):

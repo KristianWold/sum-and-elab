@@ -1,8 +1,8 @@
-import tensorflow as tf
 import numpy as np
 import unicodedata
 import re
 import random
+import torch
 from tqdm.notebook import tqdm
 
 def normalize_to_ascii(s: str) -> str:
@@ -25,30 +25,27 @@ class TokenizerChar:
     def __init__(self, corpus):
 
         # Flatten the list of lists into a single list
-        corpus_flatten = [item for sublist in corpus for item in sublist]
+        corpus_flatten = []
+        for line in corpus:
+            words = list(line)
+            for word in words:
+                corpus_flatten.extend(word)
     
         self.vocab = sorted(list(set(corpus_flatten)))
         self.vocab_size = len(self.vocab)
         self.token_to_idx = {ch: i for i, ch in enumerate(self.vocab)}
+        self.lookup = torch.full((128,), -1, dtype=torch.long)
 
     
     def encode(self, text):
-        if isinstance(text, list):
-            text_list = text
-            indices = tf.stack([self.encode(text) for text in text_list])
-        else:
-            text = tf.strings.unicode_split(text, input_encoding="UTF-8")
-            indices = self.table_tokenize.lookup(text)
-        return indices
-    
+        return [self.token_to_idx.get(ch, -1) for ch in text]
+
     def decode(self, indices):
-        text = self.table_detokenize.lookup(indices)
-        text = tf.strings.reduce_join(text, axis=-1, separator="")
-        return text
+        return "".join([self.vocab[i] for i in indices if i < self.vocab_size])
 
 
 class TokenizerBPE:
-    def __init__(self, corpus, num_merges, lowercase=False, ratio=1):
+    def __init__(self, corpus, num_merges, lowercase=False, ratio=None):
         if lowercase:
             print("Lowercasing corpus")
             corpus = [line.lower() for line in tqdm(corpus)]
@@ -56,7 +53,9 @@ class TokenizerBPE:
         corpus_clean = [normalize_to_ascii(line) for line in corpus]
         corpus_clean = [re.sub(r"\s+", " ", line) for line in corpus_clean]  
 
+        print("Char tokenization")
         self.tokenizer_char = TokenizerChar(corpus_clean)
+        print("Char tokenization complete")
         self.token_to_idx = self.tokenizer_char.token_to_idx
         self.idx_to_token = {v: k for k, v in self.token_to_idx.items()}
         self.token_freq = {}
@@ -64,27 +63,25 @@ class TokenizerBPE:
         self.vocab_size = self.tokenizer_char.vocab_size
 
         self.pre_merge_list = []
-        self.add_special_tokens(["<sep>"])
-        self.sep_token = self.token_to_idx["<sep>"]
+        self.add_special_tokens(["<>"])
+        self.sep_token = self.token_to_idx["<>"]
 
-
+    
         corpus_flatten = " ".join(corpus_clean)
+        del corpus_clean
+
         corpus_flatten = re.findall(r"\s*[\w']+|[^\w]", corpus_flatten)
+
         # shuffle and sample
         random.shuffle(corpus_flatten)
         length = len(corpus_flatten)
 
-        corpus_flatten = corpus_flatten[:int(length * ratio)]
-
-        corpus_flatten = "<sep>".join(corpus_flatten)
-        
+        if not ratio is None:
+            corpus_flatten = corpus_flatten[:int(length * ratio)]
+        corpus_flatten = "<>".join(corpus_flatten)
         corpus_tokens = self.tokenizer_char.encode(corpus_flatten)
-        corpus_tokens = self.pre_merge(corpus_tokens)  
-
-        print(corpus_tokens)
-
-        corpus_tokens
-        
+        print(len(corpus_tokens), "tokens in corpus")
+        corpus_tokens = self.pre_merge(corpus_tokens)
 
         print("Merging tokens")
         self.merge_list = []
@@ -112,12 +109,11 @@ class TokenizerBPE:
                 indices[:-1][slice] = new_idx
                 indices = np.delete(indices, (slice[0]+1))
 
-        return tf.expand_dims(tf.convert_to_tensor(indices, dtype=tf.int32), axis=0)
+        return indices
 
     def decode(self, indices):
-        text = self.table_detokenize.lookup(indices)
-        text = tf.strings.reduce_join(text, axis=-1, separator="")
-        return text
+        return "".join([self.idx_to_token[i] for i in indices if i < self.vocab_size])
+
 
     def merge(self, corpus_tokens):
         corpus_tokens = np.array(corpus_tokens)  
@@ -151,13 +147,10 @@ class TokenizerBPE:
                 self.idx_to_token[self.vocab_size] = token
                 self.pre_merge_list.append([token_indices, self.vocab_size])
                 self.vocab_size += 1
-
-
-        self.create_hash()
     
 
     def pre_merge(self, indices):
-        indices = np.array(indices)
+        #indices = np.array(indices)
         for token, value in self.pre_merge_list:
             length = len(token)
             token = np.array(token).reshape(-1,1)
@@ -193,22 +186,3 @@ def pair_freq(indices, stop_token, vocab_size):
     idx2 = temp // vocab_size
 
     return (idx1, idx2), count
-
-
-
-def fuse_tokenized_corpus(corpus, tokenizer):
-    SOS = tokenizer.token_to_idx["<s>"]
-    EOS = tokenizer.token_to_idx["</s>"]
-    corpus_list = [SOS]
-    for line in tqdm(corpus):
-        corpus_list.append(line)
-        corpus_list.append(EOS)
-        corpus_list.append(SOS)
-
-    corpus = tf.concat(corpus_list[:-1], axis=0)
-    return corpus
-
-def chunk_corpus(corpus, chunk_size):
-    corpus = tf.data.Dataset.from_tensor_slices(corpus)
-    corpus = corpus.batch(chunk_size, drop_remainder=True)
-    return corpus
