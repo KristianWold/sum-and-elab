@@ -5,21 +5,6 @@ import random
 import torch
 from tqdm.notebook import tqdm
 
-def normalize_to_ascii(s: str) -> str:
-    # 1) Decompose Unicode characters (e.g. é → e +  ́)
-    # 2) Drop the non-ASCII combining marks in the encode step
-    normalized = unicodedata.normalize('NFKD', s)
-    ascii_bytes = normalized.encode('ascii', 'ignore')
-    return ascii_bytes.decode('ascii')
-
-def word_split(line):
-    
-    normalized_line = normalize_to_ascii(line)
-    # Split into words
-    word_list = normalized_line.strip().split()
-    word_list = [list(word) for word in word_list]
-    return word_list
-
 
 class TokenizerChar:
     def __init__(self, corpus):
@@ -45,17 +30,11 @@ class TokenizerChar:
 
 
 class TokenizerBPE:
-    def __init__(self, corpus, num_merges, lowercase=False, ratio=None):
-        if lowercase:
-            print("Lowercasing corpus")
-            corpus = [line.lower() for line in tqdm(corpus)]
+    def __init__(self, corpus, num_merges, ratio=None, verbose=False):
 
-        corpus_clean = [normalize_to_ascii(line) for line in corpus]
-        corpus_clean = [re.sub(r"\s+", " ", line) for line in corpus_clean]  
-
-        print("Char tokenization")
-        self.tokenizer_char = TokenizerChar(corpus_clean)
-        print("Char tokenization complete")
+        print("Create character tokenizer")
+        self.tokenizer_char = TokenizerChar(corpus)
+        
         self.token_to_idx = self.tokenizer_char.token_to_idx
         self.idx_to_token = {v: k for k, v in self.token_to_idx.items()}
         self.token_freq = {}
@@ -63,13 +42,13 @@ class TokenizerBPE:
         self.vocab_size = self.tokenizer_char.vocab_size
 
         self.pre_merge_list = []
-        self.add_special_tokens(["<>"])
+        self.add_special_tokens(["<>"]) # separator token
         self.sep_token = self.token_to_idx["<>"]
 
-    
-        corpus_flatten = " ".join(corpus_clean)
-        del corpus_clean
+        corpus_flatten = " ".join(corpus)
+        del corpus
 
+        print("Split corpus into words")
         corpus_flatten = re.findall(r"\s*[\w']+|[^\w]", corpus_flatten)
 
         # shuffle and sample
@@ -78,21 +57,23 @@ class TokenizerBPE:
 
         if not ratio is None:
             corpus_flatten = corpus_flatten[:int(length * ratio)]
+
         corpus_flatten = "<>".join(corpus_flatten)
+        print("Char tokenize corpus")
         corpus_tokens = self.tokenizer_char.encode(corpus_flatten)
-        print(len(corpus_tokens), "tokens in corpus")
+        print("Pre-merge corpus")
         corpus_tokens = self.pre_merge(corpus_tokens)
 
-        print("Merging tokens")
+
+        print("Merging started")
         self.merge_list = []
         for i in tqdm(range(num_merges)):
-            corpus_tokens = self.merge(corpus_tokens)
+            corpus_tokens = self.merge(corpus_tokens, verbose)
 
-        self.word_list = None
+        print("Merging complete")
 
 
-    def encode(self, text, verbose=False):
-        #text = text.lower()
+    def encode(self, text, verbose=False, pre_merge=True):
 
         if verbose:
             decorator = tqdm
@@ -100,7 +81,7 @@ class TokenizerBPE:
             decorator = lambda x: x
 
         indices = np.array(self.tokenizer_char.encode(text))
-        if len(self.pre_merge_list) > 0:
+        if len(self.pre_merge_list) > 0 and pre_merge:
             indices = self.pre_merge(indices)
 
         for (idx1, idx2), new_idx in decorator(self.merge_list):
@@ -111,21 +92,23 @@ class TokenizerBPE:
 
         return indices
 
+
     def decode(self, indices):
         return "".join([self.idx_to_token[i] for i in indices if i < self.vocab_size])
 
 
-    def merge(self, corpus_tokens):
+    def merge(self, corpus_tokens, verbose=False):
         corpus_tokens = np.array(corpus_tokens)  
 
         new_idx = self.vocab_size
         (idx1, idx2), counts = pair_freq(corpus_tokens, self.sep_token, self.vocab_size)
         self.merge_list.append([(idx1, idx2), self.vocab_size])
 
-    
         token1 = self.idx_to_token[idx1]
         token2 = self.idx_to_token[idx2]
-        print(token1, token2, counts)
+        if verbose:
+            print(f"Merging tokens: {token1} + {token2} -> {new_idx} with count {counts}")
+        # Create new token
         new_token = token1 + token2
         self.token_to_idx[new_token] = new_idx
         self.idx_to_token[new_idx] = new_token
@@ -150,7 +133,8 @@ class TokenizerBPE:
     
 
     def pre_merge(self, indices):
-        #indices = np.array(indices)
+        """ Pre-merge special token encoding from char tokens"""    
+
         for token, value in self.pre_merge_list:
             length = len(token)
             token = np.array(token).reshape(-1,1)
@@ -172,9 +156,9 @@ class TokenizerBPE:
         return indices
 
 
-def pair_freq(indices, stop_token, vocab_size):
+def pair_freq(indices, sep_token, vocab_size):
     indices = np.array(indices)
-    mask = (indices[:-1] == stop_token) + (indices[1:] == stop_token)
+    mask = (indices[:-1] == sep_token) + (indices[1:] == sep_token)
 
     indices_large = indices[:-1] + indices[1:]*vocab_size
 
