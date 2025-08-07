@@ -84,6 +84,12 @@ class Transformer(nn.Module):
         logits = x_embeds @ word_unembed.T + self.unembed_b
 
         return logits
+    
+    def num_parameters(self):
+        """
+        Returns the number of trainable parameters in the model.
+        """
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
 
 class TransformerBlock(nn.Module):

@@ -4,6 +4,7 @@ import re
 import random
 import torch
 from tqdm.notebook import tqdm
+from numpy.lib.stride_tricks import sliding_window_view
 
 
 class TokenizerChar:
@@ -134,20 +135,17 @@ class TokenizerBPE:
 
     def pre_merge(self, indices):
         """ Pre-merge special token encoding from char tokens"""    
-
         for token, value in self.pre_merge_list:
-            length = len(token)
-            token = np.array(token).reshape(-1,1)
-            indices_list = []
-            for i in range(length):
-                indices_list.append(np.pad(indices, (length - i - 1, i), 'constant', constant_values=(0, 0)))
-            indices_list = np.array(indices_list)
+            token = np.array(token)
 
-            locs = np.where(np.equal(indices_list, token).all(axis=0))[0] - length + 1
+            windows = sliding_window_view(indices, len(token)) # memory efficient sliding window
+            matches = np.all(windows == token, axis=1)
+            positions = np.where(matches)[0]
+
             del_idx = []
-            for loc in list(reversed(locs)):
+            for loc in list(positions):
                 indices[loc] = value
-                del_idx.extend(list(range(loc + 1, loc + length)))
+                del_idx.extend(list(range(loc + 1, loc + len(token))))
 
             if len(del_idx) > 0:    
                 del_idx = np.array(del_idx)
