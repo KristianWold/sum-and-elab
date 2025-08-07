@@ -189,4 +189,7 @@ corpus/
 models/
 checkpoints/
 
+#checkpoint files
+*.pth
+
 # End of https://www.toptal.com/developers/gitignore/api/python,jupyternotebooks
