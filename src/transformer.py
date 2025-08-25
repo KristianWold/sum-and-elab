@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+
 import numpy as np
 import math
 
@@ -49,11 +50,13 @@ class Transformer(nn.Module):
         self.unembed_b = nn.Parameter(torch.zeros(vocab_size, dtype=torch.float32))  # bias for unembedding
     
     def forward(self, tokens):
+        batch, seq = tokens.shape[0], tokens.shape[1]
+        mask = get_causal_mask(tokens, self.start_token_id).unsqueeze(1)  # [batch, 1, seq, seq]
+        mask = mask.expand(batch, self.heads, seq, seq)
 
         x = self.embed(tokens)
-            
         for block in self.layer_list:
-            x = block(x, tokens)
+            x = block(x, mask)
         
         x = self.unembed(x)
 
@@ -129,17 +132,19 @@ class TransformerBlock(nn.Module):
         self.layer_down = nn.Linear(ff_dim, embed_dim, bias=True)
 
 
-    def forward(self, x_embeds, tokens):
-        x_embeds = self.attention(x_embeds, tokens)
+    def forward(self, x_embeds, mask):
+        x_embeds = self.attention(x_embeds, mask)
+
         x_embeds = self.ffnn(x_embeds)
 
         return x_embeds
 
 
-    def attention(self, x_embeds, tokens):
+    def attention(self, x_embeds, mask):
         batch = x_embeds.shape[0]
         seq = x_embeds.shape[1]
 
+        # compute keys, queries and values
         x_kqv = self.KQV(x_embeds)  # [batch, seq, 3*heads*head_dim]
         x_kqv = torch.reshape(x_kqv, [batch, seq, 3, self.heads, self.head_dim])
         x_kqv = torch.permute(x_kqv, [0, 3, 2, 1, 4])
@@ -148,35 +153,27 @@ class TransformerBlock(nn.Module):
         x_q = x_kqv[:, :, 1, :, :] # queries
         x_v = x_kqv[:, :, 2, :, :] # values
 
-        # compute mask
-
-        causal_mask = get_causal_mask(tokens).unsqueeze(1)  # [batch, 1, seq, seq]
-        block_mask = get_block_diag_mask(tokens, self.start_token_id).unsqueeze(1) # [batch, 1, seq, seq]
         
-        mask = causal_mask | block_mask # [batch, 1, seq, seq]
-        mask = mask.expand(batch, self.heads, seq, seq)
 
         # compute attention
-
         attn = torch.matmul(x_q, x_k.transpose(-1, -2))  # [batch, heads, seq, seq]
         attn = attn / math.sqrt(self.head_dim)  # scale attention scores
+
 
         attn_masked = attn.masked_fill(mask, float("-inf"))  # [batch, heads, seq, seq]
         attn_masked = F.softmax(attn_masked, dim=-1)  # softmax over the last dimension
         attn_masked = self.do_attn(attn_masked)  # dropout 
 
         # compute weighted output
-
         out = torch.matmul(attn_masked, x_v)  # [batch, heads, seq, head_dim]
         out = torch.permute(out, [0, 2, 1, 3])
         out = torch.reshape(out, [batch, seq, self.embed_dim])
         out = self.WO(out)  # [batch, seq, embed_dim]
-        
+    
         # apply dropout, layer norm and residual connection
 
         out = self.dol1(out)
-        out = self.ln1(out)
-        out = out + x_embeds
+        out = self.ln1(out + x_embeds)
 
         return out
     
@@ -191,15 +188,22 @@ class TransformerBlock(nn.Module):
 
         # apply dropout, layer norm and residual connection 
         out = self.dol2(out)
-        out = self.ln2(out)
-        out = out + x_embeds
+        out = self.ln2(out + x_embeds)
 
         return out
 
 
-def get_causal_mask(tokens):
+def get_causal_mask(tokens, start_token_id):
+    triu_mask = get_triu_mask(tokens)
+    block_mask = get_block_diag_mask(tokens, start_token_id)
+    causal_mask = triu_mask | block_mask
+
+    return causal_mask
+
+
+def get_triu_mask(tokens):
     """
-    Returns a causal mask for the given tokens.
+    Returns a triangular mask for the given tokens.
     """
     batch_size, seq_len = tokens.size()
     mask = torch.triu(torch.ones(seq_len, seq_len, dtype=torch.bool), diagonal=1)
