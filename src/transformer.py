@@ -93,6 +93,11 @@ class Transformer(nn.Module):
         Returns the number of trainable parameters in the model.
         """
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
+    
+    def get_word_embed(self):
+        return self.word_embed.weight
+
+
 
 
 class TransformerBlock(nn.Module):
