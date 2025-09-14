@@ -238,25 +238,24 @@ def resetting_positions(tokens, start_token_id):
                      where rel_pos[b,i] counts up from 0 since
                      the last start‐token (or the sequence start).
     """
-    # 1) detect start tokens
+
     is_start = tokens.eq(start_token_id)                              # [B, T], bool
 
-    # 2) force a “start” at position 0 of each sequence
+    # set beginning of each sequence as start
     batch_size, seq_len = tokens.size()
     first_col = torch.ones(batch_size, 1, dtype=torch.bool, device=tokens.device)
     is_start = torch.cat([first_col, is_start[:, 1:]], dim=1)         # [B, T]
 
-    # 3) make a [0,1,2,…,T-1] index array for each batch
+    # initialize default [0,1,2,...,T-1] positions for each batch
     positions = torch.arange(seq_len, dtype=torch.long, device=tokens.device)  # [T]
     positions = positions.unsqueeze(0).expand(batch_size, -1)         # [B, T]
 
-    # 4) pick out the indices where resets happen (else 0)
+    # 4) pick out the positions where resets happen, else 0
     start_pos = torch.where(is_start, positions, torch.zeros_like(positions))  # [B, T]
 
-    # 5) compute, for each token, the **latest** reset‐position seen so far.
-    #    torch.cummax returns a tuple (values, indices), we only need values.
+    # torch.cummax finds latest reset position along each sequence
     last_start, _ = start_pos.cummax(dim=1)                          # [B, T]
 
-    # 6) subtract to get “position since last reset”
+    # 6) subtract to get positions relative to each last reset
     rel_pos = positions - last_start                                 # [B, T]
     return rel_pos
