@@ -158,8 +158,6 @@ class TransformerBlock(nn.Module):
         x_q = x_kqv[:, :, 1, :, :] # queries
         x_v = x_kqv[:, :, 2, :, :] # values
 
-        
-
         # compute attention
         attn = torch.matmul(x_q, x_k.transpose(-1, -2))  # [batch, heads, seq, seq]
         attn = attn / math.sqrt(self.head_dim)  # scale attention scores

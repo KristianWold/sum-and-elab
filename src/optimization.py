@@ -28,16 +28,18 @@ def train_step(model, batch, criterion, optimizer, scaler, scheduler, accum_step
     return loss
 
 
-def save_checkpoint(model, optimizer, scheduler, filename='checkpoint.pth'):
+def save_checkpoint(model, optimizer, scheduler, loss_train, loss_test, filename='checkpoint.pth'):
     checkpoint = {
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         'scheduler_state_dict': scheduler.state_dict() if scheduler else None,
+        'loss_train': loss_train,
+        'loss_test': loss_test
     }
     torch.save(checkpoint, filename)
 
 
-def load_checkpoint(filename, model, optimizer=None, scheduler=None):
+def load_checkpoint(filename, model, optimizer=None, scheduler=None, loss_train=None, loss_test=None):
     checkpoint = torch.load(filename)
     model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -45,8 +47,12 @@ def load_checkpoint(filename, model, optimizer=None, scheduler=None):
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     if scheduler and checkpoint['scheduler_state_dict']:
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+    if loss_train is not None and 'loss_train' in checkpoint:
+        loss_train = checkpoint['loss_train']
+    if loss_test is not None and 'loss_test' in checkpoint:
+        loss_test = checkpoint['loss_test'] 
 
-    return model, optimizer, scheduler
+    return model, optimizer, scheduler, loss_train, loss_test
 
 
 def group_decay_parameters(model, weight_decay=0.01, no_decay=['bias', 'LayerNorm.weight']):
