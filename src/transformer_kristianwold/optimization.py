@@ -40,7 +40,7 @@ def save_checkpoint(model, optimizer, scheduler, loss_train, loss_test, filename
 
 
 def load_checkpoint(filename, model, optimizer=None, scheduler=None, loss_train=None, loss_test=None):
-    checkpoint = torch.load(filename)
+    checkpoint = torch.load(filename, weights_only=False, map_location='cpu')
     model.load_state_dict(checkpoint['model_state_dict'])
 
     if optimizer:

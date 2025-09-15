@@ -1,6 +1,10 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+import textwrap
+import ipywidgets as widgets
+from IPython.display import display
+from torch.distributions import Categorical
 
 import numpy as np
 import math
@@ -259,3 +263,65 @@ def resetting_positions(tokens, start_token_id):
     # 6) subtract to get positions relative to each last reset
     rel_pos = positions - last_start                                 # [B, T]
     return rel_pos
+
+
+
+
+class Inference:
+    def __init__(self, model, tokenizer, context_length, device):
+        self.model = model
+        self.tokenizer = tokenizer
+        self.context_length = context_length
+        self.device = device
+        
+
+    def run(self, text, T, k, mode=None):
+        if mode == "summary":
+            text = "<s><b>" + text + "<h>"
+        elif mode == "expand":
+            text = "<s><h>" + text + "<b>"
+        else:
+            pass
+
+        tokens = torch.tensor(self.tokenizer.encode(text.lower()), dtype=torch.long).reshape(1, -1).to(self.device)
+
+        self.display = Display()
+
+        self.model.eval()
+        with torch.no_grad():
+            for i in range(self.context_length):
+                next = self.next_token(tokens, T, k,)
+
+                tokens = torch.cat([tokens, next.reshape(1,1)], dim=1)
+                text = self.tokenizer.decode(tokens[0].tolist())
+                self.display.update(text)
+
+                if next[0] == self.tokenizer.token_to_idx["</s>"]:
+                    break
+                
+
+    def next_token(self, tokens, T, k):
+        logits = self.model(tokens)[0, -1:]
+        topk_vals, _    = torch.topk(logits, k=k)
+        kth_value       = topk_vals[:,-1]
+
+        logits = torch.where(logits >= kth_value, logits, -torch.inf)
+        dist = Categorical(logits=logits/T)
+        next = dist.sample()
+
+        return next
+
+
+class Display:
+    def __init__(self):
+        self.wrapper = textwrap.TextWrapper(width=80)
+
+        self.ta = widgets.Textarea(
+            value="",
+            layout=widgets.Layout(width='80ch', height='20em'),
+            disabled=True
+        )
+        display(self.ta)
+
+    def update(self, text):
+        self.ta.value = self.wrapper.fill(text.replace("\n", " "))  # this updates in-place

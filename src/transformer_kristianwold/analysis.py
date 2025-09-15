@@ -35,16 +35,23 @@ class EmbeddingClustering:
         self.tokenizer = tokenizer
         self.n_clusters = n_clusters
 
-    def fit(self, word_embed):
+    def fit(self, word_embed, normalize = True):
         self.word_embed = word_embed.detach().cpu().numpy()
+        if normalize:
+            self.word_embed = self.word_embed / np.linalg.norm(self.word_embed, axis=-1, keepdims=True)
 
         inertia, labels, clusters = cluster(self.word_embed, self.n_clusters)
-        
+
         self.inertia = inertia
         self.labels = labels
         self.clusters = np.array(clusters)
+        
+        sq_dists = np.sum((self.word_embed - clusters[labels])**2, axis=1)
+        per_cluster_inertia = np.bincount(labels, weights=sq_dists, minlength=self.n_clusters)
+        inertia_rank = np.argsort(per_cluster_inertia)
+        inertia_list = per_cluster_inertia[inertia_rank]
 
         cos_sim = cosine_similarity(self.clusters, self.word_embed)
-        idx =  np.argsort(cos_sim, axis=-1)[:,::-1]
+        cos_sim_rank =  np.argsort(cos_sim, axis=-1)[:,::-1]
 
-        return idx
+        return cos_sim_rank, inertia_rank, inertia_list
