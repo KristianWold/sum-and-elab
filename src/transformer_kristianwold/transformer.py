@@ -293,12 +293,13 @@ class Inference:
                 next = self.next_token(tokens, T, k,)
 
                 tokens = torch.cat([tokens, next.reshape(1,1)], dim=1)
-                text = self.tokenizer.decode(tokens[0].tolist())
+                text = self.tokenizer.decode(tokens[0].tolist()).replace("\n", " ")
                 self.display.update(text)
 
                 if next[0] == self.tokenizer.token_to_idx["</s>"]:
                     break
-                
+
+        return text
 
     def next_token(self, tokens, T, k):
         logits = self.model(tokens)[0, -1:]
