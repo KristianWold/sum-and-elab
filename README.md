@@ -5,3 +5,7 @@ The transformer is trained with unsupervised next-token prediction on the entire
 making it easy to make a language model (LM) for summerization (body text to highlight,) or elaboration (highlight to body text). This LM is trained to do both functions simultaneously.
 
 Further, this project also feautres data cleaning, a custom BPE tokenizer implemented in NumPy, and interpretability analysis on the level of word embeddings. 
+
+## Inference
+
+
