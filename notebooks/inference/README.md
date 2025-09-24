@@ -27,8 +27,8 @@ Correct information:
  - flight from istanbul to London (infered from Luton)
  - due to appear in westminster magistrates' court on wednesday
 
-Invented information:
- - Theatrical "mad Abdullah Rashid", person invented. 
+Incorrect information:
+ - "Mad Abdullah", name invented. Actual name was Yahya. Last name correct.
 
 ### Article Predicted from Highlight:
 (cnn) -- a man who was arrested at luton airport on wednesday after landing on a flight from istanbul said he was arrested and questioned by an immigration officer. the man, who did not want to be named, was detained by immigration authorities. the man is charged with terrorism offenses, according to immigration and customs enforcement (fpf). he was booked on an unrelated charge. the man, originally from syria, was arrested wednesday at luton airport, where he boarded a flight from istanbul. he was charged with terror offenses, and the flight landed at luton international airport. he was arrested with suspected terrorism offenses, according to the airport. the latest charge is connected to the alleged plot in istanbul, the airport's website says.
@@ -40,7 +40,7 @@ Correct information:
  - Came from Istanbul with plane.
 
 Invented information:
- - Person from Syria. Predicted highlight invented name Rashid, a typical name in Syria
+ - Person from Syria.
  - Arrest happened on Wednesday (possible mixup, the court was on wednesday)
  - Was questioned by an immigration officer. 
  - Mention of unrelated charge.

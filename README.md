@@ -65,7 +65,7 @@ When predicting highlights and articles on test data, the model did several inte
 
 - Inferring that Luton is in London
 - Conflating Sierra Leone and Liberia
-- Inventing that a terrorist suspect was from Syria and named Rashid
+- Inventing that a terrorist suspect was from Syria.
 
 Since these inferences can't be localized directly from the test data, we investigate the word embeddings of the model to see if we can explain the interesting inferrences. Specifically, we check cosine similarity between target word embeddings with the embeddings of the whole vocabulary to see what concepts the model might associate. 
 
@@ -73,7 +73,7 @@ The computing the similarity of "Luton" to the vocabulary, "Londons" and "London
 
 Even more correlated, "Sierra" and "Liberia" score rank 1 and 14 with respect to each other, making them almost equal in terms of embedding. Thus, the model can likely easily conflate them, as observed.
 
-Finally, "Syria" and "terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" is strongly correlated middle eastern associations, such as "jihadist" at rank five, and islamist at rank 11. This might help explain why the name "Rashid", a common Syrian name, was predicted by the model. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in the Middle East, providing data to support such correlations in the models. While the data itself is not erronous, the correlations are derived through a specific lens set by the reporting of the newspapers. We observe that such correlations can manifest as extrapolations made by the transformer during inference, resulting in claims that does not generally reflect upon reality. These are typically called transformer hallucinations. 
+Finally, "Syria" and "terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" is strongly correlated middle eastern associations, such as "jihadist" at rank five, and islamist at rank 11. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in and relating to the Middle East, providing data to support such correlations in the model. While the data in itself is not erronous, the correlations are derived through a specific lens set by the reporting of the newspapers. We observe that such correlations can manifest as extrapolations made by the transformer during inference, resulting in claims that does not generally reflect upon reality. These are typically called transformer hallucinations. 
 
 ## Word Clustering
 
