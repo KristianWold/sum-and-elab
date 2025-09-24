@@ -19,6 +19,15 @@ def cosine_similarity(embed_a, embed_b, normalize=True):
 
     return dot_product
 
+def word_sim_to_vocab(word, word_embed, top_k=10):
+    embeds = word_embed[word].mean(axis=0, keepdims=True)
+
+    cos_sim = cosine_similarity(embeds, word_embed)
+    cos_sim_rank =  np.argsort(cos_sim, axis=-1)[:,::-1]
+
+    return cos_sim_rank[:, :top_k]
+
+
 
 def cluster(X, n_clusters):
     kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X)

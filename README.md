@@ -17,19 +17,63 @@ We test the full model, regularized and trained for five epochs, on a out-of-dis
 
 The articles has been chosen for being brief, but has otherwise not been cherry picked. See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more tests.
 
-### London Terror
+## Ebola Infection
 
-**Real Article**: london (cnn)a 19-year-old man was charged wednesday with terror offenses after he was arrested as he returned to britain from turkey, london's metropolitan police said. yahya rashid, a uk national from northwest london, was detained at luton airport on tuesday after he arrived on a flight from istanbul, police said. he's been charged with engaging in conduct in preparation of acts of terrorism, and with engaging in conduct with the intention of assisting others to commit acts of terrorism. both charges relate to the period between november 1 and march 31. rashid is due to appear in westminster magistrates' court on wednesday, police said. cnn's lindsay isaac contributed to this report.
+### Real Article: 
+(cnn)five americans who were monitored for three weeks at an omaha, nebraska, hospital after being exposed to ebola in west africa have been released, a nebraska medicine spokesman said in an email wednesday. one of the five had a heart-related issue on saturday and has been discharged but hasn't left the area, taylor wilson wrote. the others have already gone home. they were exposed to ebola in sierra leone in march, but none developed the deadly virus. they are clinicians for partners in health, a boston-based aid group. they all had contact with a colleague who was diagnosed with the disease and is being treated at the national institutes of health in bethesda, maryland. as of monday, that health care worker is in fair condition. the centers for disease control and prevention in atlanta has said the last of 17 patients who were being monitored are expected to be released by thursday. more than 10,000 people have died in a west african epidemic of ebola that dates to december 2013, according to the world health organization. almost all the deaths have been in guinea, liberia and sierra leone. ebola is spread by direct contact with the bodily fluids of an infected person.
 
-**Real Highlight**: london's metropolitan police say the man was arrested at luton airport after landing on a flight from istanbul. he's been charged with terror offenses allegedly committed since the start of november.
+### Real Highlight: 
+17 americans were exposed to the ebola virus while in sierra leone in
+march. another person was diagnosed with the disease and taken to hospital in
+maryland. national institutes of health says the patient is in fair condition
+after weeks of treatment.
 
-**Highlight Predicted from Article**:
+### Highlight Predicted from Article:
 
-**Article Predicted from Highlight**:  (cnn) -- a man who was arrested at luton airport on wednesday after landing on a flight from istanbul said he was arrested and questioned by an immigration officer. the man, who did not want to be named, was detained by immigration authorities. the man is charged with terrorism offenses, according to immigration and customs enforcement (fpf). he was booked on an unrelated charge. the man, originally from syria, was arrested wednesday at luton airport, where he boarded a flight from istanbul. he was charged with terror offenses, and the flight landed at luton international airport. he was arrested with suspected terrorism offenses, according to the airport. the latest charge is connected to the alleged plot in istanbul, the airport's website says.
+five americans infected with ebola in west africa have been released, a nebraska health spokesman says. one of the five has a heart-related issue. the hospital has said the last of 17 patients who were treated were expected to be released by thursday. one of the five is in fair condition, and has been discharged but hasn't left the area.
 
-**Recoverd Highlight**: a man on a flight from istanbul says he was arrested and questioned by immigration officers. he boarded the flight from istanbul to luton, authorities say. the man is charged with terrorism offenses, according to the airport's website.
+**Comments**
+
+The predicted highlight is broadly correct and good language.
+
+### Article Predicted from Highlight:
+(cnn) -- four americans who were exposed to the deadly ebola virus in liberia, the health department said monday. one of the infected was in a tent at the liberian capital of san antonio, according to the centers for disease control and prevention. one of the men was treated at a medical center in bellevue, maryland, and is now in a stable condition, the health department said. the second man, who was treated at a medical center in maryland in late march, is in fair condition, the health department said. the other two is in stable condition. the other two are with suspected cases of ebola in the united states. the latest patient, who was treated at a hospital in monrovia, maryland, is in fair condition, the health department said. the two have been identified as 21-year-old sierra leonean thomas eric duncan. duncan is in a critical condition and is in a stable condition, the health department said. he is in a stable condition with three other patients who have died in the west african country, the health department said. the case has been referred to the national institutes of health.
+
+**Comments**
+
+Correct information:
+ - Taken to hospital in Maryland
+ - Patient in fair condition
+
+Incorrect information:
+ - Exposed in Liberia (was Sierra Leone)
+ - "Liberian capital of San Antonio"
+
+Invented information:
+ - Four americans exposed
+ - Treated in Bellevu in Maryland 
+ - Identification of patients
+ - patients that died
+
+Other Comments: 
+ - Language is good, not repetitive.
+ - "the two have been identified as...", but then only one person is identified.
 
 ## Word Relations
+
+When predicting highlights and articles on test data, the model did several interesting connections and misconnections between words, as pointed out in the [analysis](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/README.md). The following relations were observed:
+
+- Inferring that Luton is in London
+- Conflating Sierra Leone and Liberia
+- Inventing that a terrorist suspect was from Syria and named Rashid
+
+Since these inferences can't be localized directly from the test data, we investigate the word embeddings of the model to see if we can explain the interesting inferrences. Specifically, we check cosine similarity between target word embeddings with the embeddings of the whole vocabulary to see what concepts the model might associate. 
+
+The computing the similarity of "Luton" to the vocabulary, "Londons" and "London's" score rank 200 and 297, showing they are significantly more correlated than most of the vocabulary. Similarly, "Luton" score rank 140 with respect to London. Thus, Luton and London have in terms of embedding some overlap of information, making it possible for the model to derive one from the other.
+
+Even more correlated, "Sierra" and "Liberia" score rank 1 and 14 with respect to each other, making them almost equal in terms of embedding. Thus, the model can likely easily conflate them, as observed.
+
+Finally, "Syria" and "terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" is strongly correlated middle eastern associations, such as "jihadist" at rank five, and islamist at rank 11. This might help explain why the name "Rashid", a common Syrian name, was predicted by the model. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in the Middle East, providing data to support such correlations in the models. While the data itself is not erronous, the correlations are derived through a specific lens set by the reporting of the newspapers. We observe that such correlations can manifest as extrapolations made by the transformer during inference, resulting in claims that does not generally reflect upon reality. These are typically called transformer hallucinations. 
 
 ## Word Clustering
 
