@@ -77,33 +77,43 @@ Finally, "Syria" and "terror" (and variations such terrorist and terrorism) scor
 
 ## Word Clustering
 
-We look for interpretable structures in the word embedding of the transformer at different points during training, with and without regularization. We perform a KMeans clustering on the word vectors directly (using square-sum distance), finding 300 centroids that best cluster the space of word vectors. From these, we select the tightest clusters and retrieve the ten word vectors closest (using cosine similarity) to their respective centroid. We finally check if these groupings of words offer any semantic meaning.
+We look for interpretable structures in the word embedding of the transformer at different points during training, with and without regularization. We perform a KMeans clustering on the word vectors directly (using square-sum distance), finding 300 centroids that best cluster the space of word vectors. From these, we select the tightest clusters and retrieve the ten word vectors closest to their respective centroid. We finally check if these groupings of words offer any semantic meaning.
 
 ### With Regularization 
 
-One epoch:
+#### One epoch:
 
-1: 600 900 400 700 300 750 450 350 800 250
+Cluster 1: 600 900 400 700 300 750 450 350 800 250
 
-2: 4pm 10am 5pm 2pm 1pm 7pm 11pm 11am 7am 5am
+Cluster 2: 4pm 10am 5pm 2pm 1pm 7pm 11pm 11am 7am 5am
 
-3: 90s 70s 80s eighties 60s 1960s 1950s 1970s 1940s 1980s
+Cluster 3: 90s 70s 80s eighties 60s 1960s 1950s 1970s 1940s 1980s
 
-5: mexico puerto arizona mexican florida nevada texas cuba chicago california
+Cluster 5: mexico puerto arizona mexican florida nevada texas cuba chicago california
 
-Five epochs:
+**Comments**
+The first three clusters are semantically tight and very simple. They encode different numerical values, the first being "hundreds", second is "time of day", and third is "decades".
 
-1: protests demonstrations demonstrators protesters protestors protester rallies protest clashes riots
+The fift is conceptually more interesting, though it is not as semantically tight. They exhibit locations, roughly American south states, but with exceptions. Some are cities, some are countries. 
 
-2: adelaide melbourne brisbane sydney queensland canberra perth tasman nsw sydney's
+#### Five epochs:
 
-3: 22 14 13 15 23 26 17 12 25 16
+Cluster 1: protests demonstrations demonstrators protesters protestors protester rallies protest clashes riots
 
-10: shouting yelling chanting screaming sobbing waving crying chants cheering singing
+Cluster 2: adelaide melbourne brisbane sydney queensland canberra perth tasman nsw sydney's
+
+Cluster 3: 22 14 13 15 23 26 17 12 25 16
+
+Cluster 10: shouting yelling chanting screaming sobbing waving crying chants cheering singing
+
+**Comments**
+
+After many more epochs of training, the clusters seem to be conceptually tighter and encode more complex concepts. First cluster is a collection of synonyms for "protests". Second is mostly cities in Australia, with the exception of Tasman(ia) and NSW, which are Australian states. Cluster 10 express verbs for making sound in an emotional way.
+
 
 ### Without Regularization 
 
-One epoch:
+### One epoch:
 
 1: stopp spi convers consid schweinste mosqu vett contam venez magistr
 
@@ -113,7 +123,12 @@ One epoch:
 
 8: july august october february december november september january june april
 
-Three Epochs:
+**Comments**
+We observe a big difference in the clusters for the regularized and unregluarized models, espesially when trained for a short amount of time. Without regularization, the first two clusters are very semantically loose, more reminiscient of a "bag of words." Even worse, many of the members are not even full words, but rather subwords.
+
+As regularization decrease the effective dimmension of the embeddings and force more robust encoding, a tighter and more effective representation of the concepts is incentivied. Presumably, this increase the performance of the final model, as it can more easily correlate relevant concepts during inference. 
+
+### Three Epochs:
 
 1: 600 900 400 450 350 700 750 250 300 800
 
@@ -122,6 +137,9 @@ Three Epochs:
 5: i ive im my we i'm i've i'd you id
 
 8: insects ants spiders insect bugs squirrel rats bees rept rabbits
+
+**Comments**
+With more training, the clusters become more semantically tight, even when unregularized. For example, clusters of subwords are not to be found among top ten clusters. However, the clusters continue to be somewhat semantically diffuse. For example, cluster eight a is rought collection of creatures, pairing both "ants" and "spiders", but also "rats" and "squirrels". The cluster is perhaps reminiscent of a "vermin" cluster. However, "bees" are not typically though of as vermin.
 
 
 
