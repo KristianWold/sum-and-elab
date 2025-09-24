@@ -1,5 +1,5 @@
 # Summary and Elaboration
-We make a from-scratch transformer, built with PyTorch fundamentals and a custom optimization loop. The project is for educational purposes, and is neither fast, efficient nor high fidelity compared to state of the art solutions.
+We make a [from-scratch transformer](https://github.com/KristianWold/sum-and-elab/tree/main/src/transformer_kristianwold), built with PyTorch fundamentals and a custom optimization loop. This project is for educational purposes, and is neither fast, efficient nor high fidelity compared to state of the art solutions.
 
 The transformer is trained with unsupervised next-token prediction on the entire CNN and Daily Mail [dataset](https://arxiv.org/abs/1704.04368). This amounts to 287113 articles, around 1.3B characters. This data set features articles with highlights that summarize the body text, making it easy to make a language model (LM) for summerization (body text to highlight,) or elaboration (highlight to body text). This LM is trained to do both functions simultaneously.
 
@@ -7,17 +7,17 @@ This project also features several technical implementations, such as [data clea
 
 
 ## Training
-Training, including data cleaning and tokenization, can be found in [training](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/training).
+Notebooks for training, including data cleaning and tokenization, can be found [here](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/training).
 
-We train the transformer on the whole of the predefined training set, for up to five epochs.
+The architecture features an embed size of 1152, with 18 transformer block layers, each with 18 attention heads. This totals around 316M parameters. We train the transformer on the whole of the predefined training set for up to five epochs. This took approximatly 35 hours on a RTX4080 16GB ram GPU.
 
 ## Inference
 
-We test the full model, regularized and trained for five epochs, on an out-of-distribution text fethced from the test corpus. We let the model predict a highlight from the article, and vise versa.
+We test the model on out-of-distribution text fethced from the test corpus. We let the model predict a highlight from the article, and vise versa.
 
 See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more tests. The articles has been chosen for briefness, but has otherwise not been cherry picked.
 
-## Ebola Infection
+## Ebola Infection Story
 
 ### Real Article: 
 (cnn)five americans who were monitored for three weeks at an omaha, nebraska, hospital after being exposed to ebola in west africa have been released, a nebraska medicine spokesman said in an email wednesday. one of the five had a heart-related issue on saturday and has been discharged but hasn't left the area, taylor wilson wrote. the others have already gone home. they were exposed to ebola in sierra leone in march, but none developed the deadly virus. they are clinicians for partners in health, a boston-based aid group. they all had contact with a colleague who was diagnosed with the disease and is being treated at the national institutes of health in bethesda, maryland. as of monday, that health care worker is in fair condition. the centers for disease control and prevention in atlanta has said the last of 17 patients who were being monitored are expected to be released by thursday. more than 10,000 people have died in a west african epidemic of ebola that dates to december 2013, according to the world health organization. almost all the deaths have been in guinea, liberia and sierra leone. ebola is spread by direct contact with the bodily fluids of an infected person.
@@ -47,7 +47,7 @@ Correct information:
 
 Incorrect information:
  - Exposed in Liberia (was Sierra Leone)
- - "Liberian capital of San Antonio", incorrect statement.
+ - "Liberian capital of San Antonio"
 
 Invented information:
  - Four americans exposed

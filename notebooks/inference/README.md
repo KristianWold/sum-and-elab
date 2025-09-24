@@ -9,7 +9,7 @@ Correct information -- Information present in the highlight that is correctly re
 Incorrect information -- Information that is in conflict with the highlight, or *obviously* in conflict with reality.
 New information -- Information that is not present in the highlight, but not obviously in conflict with reality. 
 
-## London Terror
+## London Terror Story
 
 ### Real Article:
 london (cnn)a 19-year-old man was charged wednesday with terror offenses after he was arrested as he returned to britain from turkey, london's metropolitan police said. yahya rashid, a uk national from northwest london, was detained at luton airport on tuesday after he arrived on a flight from istanbul, police said. he's been charged with engaging in conduct in preparation of acts of terrorism, and with engaging in conduct with the intention of assisting others to commit acts of terrorism. both charges relate to the period between november 1 and march 31. rashid is due to appear in westminster magistrates' court on wednesday, police said. cnn's lindsay isaac contributed to this report.
@@ -50,7 +50,7 @@ Other Comments:
  - Article is repetitive. Arrest in Luton is mentioned many times. Language is overall good and makes sense. Exception is "he was booked on an unrelated charge," which is a strange formulation.
  
 
-## Ebola Infection
+## Ebola Infection Story
 
 ### Real Article: 
 (cnn)five americans who were monitored for three weeks at an omaha, nebraska, hospital after being exposed to ebola in west africa have been released, a nebraska medicine spokesman said in an email wednesday. one of the five had a heart-related issue on saturday and has been discharged but hasn't left the area, taylor wilson wrote. the others have already gone home. they were exposed to ebola in sierra leone in march, but none developed the deadly virus. they are clinicians for partners in health, a boston-based aid group. they all had contact with a colleague who was diagnosed with the disease and is being treated at the national institutes of health in bethesda, maryland. as of monday, that health care worker is in fair condition. the centers for disease control and prevention in atlanta has said the last of 17 patients who were being monitored are expected to be released by thursday. more than 10,000 people have died in a west african epidemic of ebola that dates to december 2013, according to the world health organization. almost all the deaths have been in guinea, liberia and sierra leone. ebola is spread by direct contact with the bodily fluids of an infected person.
@@ -93,7 +93,7 @@ Other Comments:
  - "the two have been identified as...", but then only one person is identified.
 
 
-## The Price is Right
+## The Price is Right Story
 
 ### Real Article:
 (cnn)for the first time in eight years, a tv legend returned to doing what he does best. contestants told to "come on down!" on the april 1 edition of "the price is right" encountered not host drew carey but another familiar face in charge of the proceedings. instead, there was bob barker, who hosted the tv game show for 35 years before stepping down in 2007. looking spry at 91, barker handled the first price-guessing game of the show, the classic "lucky seven," before turning hosting duties over to carey, who finished up. despite being away from the show for most of the past eight years, barker didn't seem to miss a beat.
