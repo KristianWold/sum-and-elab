@@ -1,10 +1,10 @@
 # Summary and Elaboration
-A from-scratch transformer is built with PyTorch fundamentals and a custom optimization loop. The project is for educational purposes, and is neither fast, efficient nor high fidelity compared to state of the art solutions.
+We make a from-scratch transformer, built with PyTorch fundamentals and a custom optimization loop. The project is for educational purposes, and is neither fast, efficient nor high fidelity compared to state of the art solutions.
 
-The transformer is trained with unsupervised next-token prediction on the entire CNN and Daily Mail [dataset](https://arxiv.org/abs/1704.04368). This data set features articles with highlights that summarize the body text, 
-making it easy to make a language model (LM) for summerization (body text to highlight,) or elaboration (highlight to body text). This LM is trained to do both functions simultaneously.
+The transformer is trained with unsupervised next-token prediction on the entire CNN and Daily Mail [dataset](https://arxiv.org/abs/1704.04368). This amounts to 287113 articles, around 1.3B characters. This data set features articles with highlights that summarize the body text, making it easy to make a language model (LM) for summerization (body text to highlight,) or elaboration (highlight to body text). This LM is trained to do both functions simultaneously.
 
-Further, this project also feautres data cleaning, a custom BPE tokenizer implemented in NumPy, and interpretability analysis on the level of word embeddings. 
+This project also features several technical implementations, such as [data cleaning](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/training/data_cleaning.ipynb), a custom [BPE tokenizer](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/training/tokenize_corpus.ipynb) implemented in NumPy, proper handling of stop token causal masking and [interpretability](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/interpretability) analysis on the level of word embeddings. 
+
 
 ## Training
 Training, including data cleaning and tokenization, can be found in [training](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/training).
@@ -13,9 +13,9 @@ We train the transformer on the whole of the predefined training set, for up to 
 
 ## Inference
 
-We test the full model, regularized and trained for five epochs, on a out-of-distribution text fethced from the test corpus. We let the model predict a highlight from the article, and wise versa. Also, we let it predict a *recovered* highlight from the predicted article, and compare it to the original highlight.
+We test the full model, regularized and trained for five epochs, on an out-of-distribution text fethced from the test corpus. We let the model predict a highlight from the article, and vise versa.
 
-The articles has been chosen for being brief, but has otherwise not been cherry picked. See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more tests.
+See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more tests. The articles has been chosen for briefness, but has otherwise not been cherry picked.
 
 ## Ebola Infection
 
@@ -47,7 +47,7 @@ Correct information:
 
 Incorrect information:
  - Exposed in Liberia (was Sierra Leone)
- - "Liberian capital of San Antonio"
+ - "Liberian capital of San Antonio", incorrect statement.
 
 Invented information:
  - Four americans exposed
