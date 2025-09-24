@@ -1,7 +1,13 @@
 # Inference on Test Data
-We test the full model, regularized and trained for five epochs, on several out-of-distribution texts fethced from the test corpus. We let the model predict a highlight from the article, and wise versa. Also, we let it predict a *recovered* highlight from the predicted article, and compare it to the original highlight.
+We test the full model, regularized and trained for five epochs, on several out-of-distribution texts fethced from the test corpus. We let the model predict a highlight from the article, and wise versa.
 
 The articles has been chosen for being brief, but has otherwise not been cherry picked. See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb)
+
+Predicting an article from a highlight is process of *decompression*. A highlight is a lossy compression, so the prediction must necessarily expand upon it. We judge the model by considering three aspects:
+
+Correct information -- Information present in the highlight that is correctly reported in the predicted article.
+Incorrect information -- Information that is in conflict with the highlight, or *obviously* in conflict with reality.
+New information -- Information that is not present in the highlight, but not obviously in conflict with reality. 
 
 ## London Terror
 
@@ -9,15 +15,13 @@ The articles has been chosen for being brief, but has otherwise not been cherry 
 
 **Real Highlight**: london's metropolitan police say the man was arrested at luton airport after landing on a flight from istanbul. he's been charged with terror offenses allegedly committed since the start of november.
 
-**Highlight Predicted from Article**: 
-
-**Article Predicted from Highlight**: (cnn) -- a man who was arrested at luton airport on wednesday after landing on a flight from istanbul said he was arrested and questioned by an immigration officer. the man, who did not want to be named, was detained by immigration authorities. the man is charged with terrorism offenses, according to immigration and customs enforcement (fpf). he was booked on an unrelated charge. the man, originally from syria, was arrested wednesday at luton airport, where he boarded a flight from istanbul. he was charged with terror offenses, and the flight landed at luton international airport. he was arrested with suspected terrorism offenses, according to the airport. the latest charge is connected to the alleged plot in istanbul, the airport's website says.
-
-**Recoverd Highlight**: a man on a flight from istanbul says he was arrested and questioned by immigration officers. he boarded the flight from istanbul to luton, authorities say. the man is charged with terrorism offenses, according to the airport's website.
+**Highlight Predicted from Article**:
 
 ### Comments
 
-When predicting an article from the highlight, the model can represent the stated information correctly or incorrectly, in addition to inventing new information. 
+**Article Predicted from Highlight**: (cnn) -- a man who was arrested at luton airport on wednesday after landing on a flight from istanbul said he was arrested and questioned by an immigration officer. the man, who did not want to be named, was detained by immigration authorities. the man is charged with terrorism offenses, according to immigration and customs enforcement (fpf). he was booked on an unrelated charge. the man, originally from syria, was arrested wednesday at luton airport, where he boarded a flight from istanbul. he was charged with terror offenses, and the flight landed at luton international airport. he was arrested with suspected terrorism offenses, according to the airport. the latest charge is connected to the alleged plot in istanbul, the airport's website says.
+
+### Comments
 
 Correct information:
  - Arrested at Luton airport
@@ -29,12 +33,18 @@ Incorrect information:
 Invented information:
  - Person from Syria
  - Arrest happened on Wednesday (possible mixup, the court was on wednesday)
- - Was questioned by immigration officer. 
+ - Was questioned by an immigration officer. 
  - Mention of unrelated charge.
  - Mention of a "plot" in Istanbul
 
 Other Comments: 
- - Article is repetitive. Arrest in Luton is mentioned many times. 
+ - Article is repetitive. Arrest in Luton is mentioned many times. Language is overall good and makes sense. Exception is "he was booked on an unrelated charge," which is a strange formulation. 
+
+
+### Comments
+
+The recovered highlight is consistent with the info in the predicted article, including incorrect information such as the "charged with terrorism offenses", and invented information such as "questioned by immigration officers."
+ 
 
 ## Ebola Infection
 
@@ -50,8 +60,26 @@ after weeks of treatment.
 **Article Predicted from Highlight**: (cnn) -- four americans who were exposed to the deadly ebola virus in liberia, the health department said monday. one of the infected was in a tent at the liberian capital of san antonio, according to the centers for disease control and prevention. one of the men was treated at a medical center in bellevue, maryland, and is now in a stable condition, the health department said. the second man, who was treated at a medical center in maryland in late march, is in fair condition, the health department said. the other two is in stable condition. the other two are with suspected cases of ebola in the united states. the latest patient, who was treated at a hospital in monrovia, maryland, is in fair condition, the health department said. the two have been identified as 21-year-old sierra leonean thomas eric duncan. duncan is in a critical condition and is in a stable condition, the health department said. he is in a stable condition with three other patients who have died in the west african country, the health department said. the case has been referred to the national institutes of health.
 
 
+### Comments
 
-**Recoverd Highlight**: a third patient is in stable condition, the health department says. five of the infected are in the liberian capital. one of the men was treated in a hospital in the united states. the outbreak has sickened more than 150 people in west africa.
+Correct information:
+ - Taken to hospital in Maryland
+ - Patient in fair condition
+
+Incorrect information:
+ - Exposed in Liberia (was Sierra Leone)
+ - "Liberian capital of San Antonio"
+ 
+
+Invented information:
+ - Four americans exposed
+ - Treated in Bellevu in Maryland 
+ - Identification of patients
+ - patients that died
+
+Other Comments: 
+ - Language is good, not repetitive.
+ - "the two have been identified as...", but then only one person is identified.
 
 
 ## The Price is Right
@@ -64,9 +92,19 @@ after weeks of treatment.
 
 **Article Predicted from Highlight**: (cnn) -- he's a 92-year-old former member of the house of representatives. in the final episode of "the price is right" on the show wednesday night, the 91-year-old former member of the house of representatives was pictured in a photograph with fellow members of the house of representatives. he did not want to be identified. barker, an 83-year-old former member of the house of representatives, was seen with a photo of his grandson, who was present and his wife, the woman she was meeting. the couple left the house in 2007, but it did not stop there. barker, an older man of 83, had retired as host in 2007, according to his publicist. he later made a name for himself as a guest host on the house committee. he had previously served as the house representative on the house committee. barker had retired as host on the house committee and had been married in 2007. he has two daughters from his previous marriages with three daughters.
 
+### Comments
 
-**Recoverd Highlight**: djerry barker leaves house of representatives in 2007. he had retired as host on house committee. he served as house representative on house committee. he has previously served as house representative on house committee.
+Correct information:
+ - Retired as host in 2007
 
+Incorrect information:
+ - Reports different ages, 92 and 83 (was 92 years old.)
+
+Invented information:
+ - Assumes the person in question is a member of house of representatives. This becomes the center for the story.
+
+Other Comments: 
+ - Text reads very incoherent. Model tries matching the "the price is right" highlight with a story of a member of the house of representative. Persumably, the original setting is very far out of distribution with respect to the training data, and the models defaults to following a statistically more plausible theme, resulting in a weird and incoherent story. 
 
 
 
