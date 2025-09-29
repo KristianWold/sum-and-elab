@@ -13,20 +13,17 @@ The architecture features an embed size of 1152, with 18 transformer block layer
 
 ## Inference
 
-We test the model on out-of-distribution text fethced from the test corpus. We let the model predict a highlight from the article, and vise versa.
+We test the model on out-of-distribution text fetched from the test corpus. The model predicts highlights from articles, and vise versa.
 
-See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more tests. The articles has been chosen for briefness, but has otherwise not been cherry picked.
+See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more results and discussion. The articles tested were chosen for briefness, but has otherwise not been cherry picked. 
 
 ## Ebola Infection Story
-
+The following is a CNN news article about the spreading of the Ebola virus.
 ### Real Article: 
 (cnn)five americans who were monitored for three weeks at an omaha, nebraska, hospital after being exposed to ebola in west africa have been released, a nebraska medicine spokesman said in an email wednesday. one of the five had a heart-related issue on saturday and has been discharged but hasn't left the area, taylor wilson wrote. the others have already gone home. they were exposed to ebola in sierra leone in march, but none developed the deadly virus. they are clinicians for partners in health, a boston-based aid group. they all had contact with a colleague who was diagnosed with the disease and is being treated at the national institutes of health in bethesda, maryland. as of monday, that health care worker is in fair condition. the centers for disease control and prevention in atlanta has said the last of 17 patients who were being monitored are expected to be released by thursday. more than 10,000 people have died in a west african epidemic of ebola that dates to december 2013, according to the world health organization. almost all the deaths have been in guinea, liberia and sierra leone. ebola is spread by direct contact with the bodily fluids of an infected person.
 
 ### Real Highlight: 
-17 americans were exposed to the ebola virus while in sierra leone in
-march. another person was diagnosed with the disease and taken to hospital in
-maryland. national institutes of health says the patient is in fair condition
-after weeks of treatment.
+17 americans were exposed to the ebola virus while in sierra leone in march. another person was diagnosed with the disease and taken to hospital in maryland. national institutes of health says the patient is in fair condition after weeks of treatment.
 
 ### Highlight Predicted from Article:
 
@@ -59,21 +56,21 @@ Other Comments:
  - Language is good, not repetitive.
  - "the two have been identified as...", but then only one person is identified.
 
-## Word Relations
+## Correlation between Word-Tokens
 
 When predicting highlights and articles on test data, the model did several interesting connections and misconnections between different concepts, as pointed out in the [analysis](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/README.md). The following relations were observed:
 
-- Inferring that Luton is in London
-- Conflating Sierra Leone and Liberia
-- Inventing that a terrorist suspect was from Syria.
+- Correctly inferring that Luton is in London
+- Conflating Sierra Leone with Liberia
+- Inventing that an actual terrorist suspect was from Syria.
 
-Since these inferences can't be localized directly from the test data, we investigate the word embeddings of the model to see if we can explain the interesting inferences. Specifically, we check cosine similarity between target word embeddings with the embeddings of the whole vocabulary to see what concepts the model might associate. 
+Since these inferences can't be localized directly from the test data, we investigate the word embeddings of the model to see if we can explain the interesting inferences. Specifically, we check Cosine Similarity to measure closeness in encoding between target word embeddings with the embeddings of the whole model vocabulary. Since identical encodings yield identical model inferences, similar encodings likely invoke similar behavior. 
 
-We compute and rank the cosine similariy score of "Luton" to the vocabulary. "Londons" and "London's" score rank 200 and 297, showing they are significantly more correlated than most of the vocabulary. Similarly, "Luton" score rank 140 with respect to London. Thus, Luton and London have in terms of embedding some overlap of information, making it possible for the model to derive one from the other.
+We compute and rank the Cosine Similariy score of " luton" to the vocabulary. " londons" and " london's" score rank 201 and 298 out of 24k, showing they are significantly more correlated than most of the vocabulary. Conversely, " luton" score rank 140 with respect to " london". Thus, Luton and London have in terms of embedding substantial overlap of information, showing how the model might derived one from the other.
 
-Even more correlated, "Sierra" and "Liberia" score rank 1 and 14 with respect to each other, making them very close in terms of embeddings. Thus, the model can likely easily conflate them, as observed.
+Even more correlated, " sierra" and " liberia" score rank two and 15 with respect to each other, making them very close in terms of embeddings. This closeness model can likely easily conflate them, as observed. Why are they not more distinct, being separate countries? Relations are learned through the data. We can guess that the training corpus is narrow and fail to make the distinction clear; perhaps references to the countries are relatively few, and where they referenced they are talked about in a similar manner. Conversely, more frequent information making the countries distinct would likely insentivize more disimilar embeddings, making the conflation less likely to happen.
 
-Finally, "Syria" and "terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" score high rank with many typically middle eastern associated concepts, such as "jihadist" at rank five, and "islamist" at rank 11. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in and relating to the Middle East, providing data to support such correlations in the model. While the data in itself is not erronous, the correlations are derived through a specific lens set by the reporting of these newspapers. We observe that such correlations can manifest as extrapolations made by the transformer during inference, resulting in claims that does not generally reflect upon reality, such as the Luton terrorist suspect hailing from Syria. These are typically called transformer hallucinations. 
+Finally, " syria" and " terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" score high rank with many typically middle eastern associated concepts, such as "jihadist" at rank five, and "islamist" at rank 11. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in and relating to the Middle East, providing data to support such correlations in the model. While the data in itself is not erronous, the correlations are derived through a specific lens set by the reporting of these newspapers. We observe that such correlations can manifest as extrapolations made by the transformer during inference, resulting in claims that does not generally reflect upon reality, such as the Luton terrorist suspect hailing from Syria. These are typically called transformer hallucinations. 
 
 ## Word Clustering
 
