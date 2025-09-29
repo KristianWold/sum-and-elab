@@ -80,33 +80,40 @@ We look for interpretable structures in the word embedding of the transformer at
 
 #### One epoch:
 
-Cluster 1: 600 900 400 700 300 750 450 350 800 250
+| **Cluster** | **Members**                                                                         |
+| ----------- | ----------------------------------------------------------------------------------- |
+| 1           | 600, 900, 400, 700, 300, 750, 450, 350, 800, 250                                    |
+| 2           | 4pm, 10am, 5pm, 2pm, 1pm, 7pm, 11pm, 11am, 7am, 5am                                 |
+| 3           | 90s, 70s, 80s, eighties, 60s, 1960s, 1950s, 1970s, 1940s, 1980s                     |
+| 5           | mexico, puerto, arizona, mexican, florida, nevada, texas, cuba, chicago, california |
 
-Cluster 2: 4pm 10am 5pm 2pm 1pm 7pm 11pm 11am 7am 5am
 
-Cluster 3: 90s 70s 80s eighties 60s 1960s 1950s 1970s 1940s 1980s
+#### Comments
 
-Cluster 5: mexico puerto arizona mexican florida nevada texas cuba chicago california
-
-**Comments**
-The first three clusters are semantically tight and very simple. They encode different numerical values, the first being "hundreds", second is "time of day", and third is "decades".
-
-The fift is conceptually more interesting, though it is not as semantically tight. They exhibit locations, roughly American south states, but with exceptions. Some are cities, some are countries. 
+* Clusters 1–3 are semantically tight and simple:
+ * Cluster 1: "hundreds"
+ * Cluster 2: "time of day"
+ * Cluster 3: "decades"
+* Cluster 5 is conceptually interesting but looser: locations, mostly U.S. South + exceptions (mix of cities, states, countries).
 
 #### Five epochs:
 
-Cluster 1: protests demonstrations demonstrators protesters protestors protester rallies protest clashes riots
+| **Cluster** | **Members**                                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------------------------ |
+| 1           | protests, demonstrations, demonstrators, protesters, protestors, protester, rallies, protest, clashes, riots |
+| 2           | adelaide, melbourne, brisbane, sydney, queensland, canberra, perth, tasman, nsw, sydney’s                    |
+| 3           | 22, 14, 13, 15, 23, 26, 17, 12, 25, 16                                                                       |
+| 10          | shouting, yelling, chanting, screaming, sobbing, waving, crying, chants, cheering, singing                   |
 
-Cluster 2: adelaide melbourne brisbane sydney queensland canberra perth tasman nsw sydney's
+#### Comments
 
-Cluster 3: 22 14 13 15 23 26 17 12 25 16
+* Clusters are conceptually tighter and encode richer concepts:
 
-Cluster 10: shouting yelling chanting screaming sobbing waving crying chants cheering singing
+ * Cluster 1: synonyms for protests.
 
-**Comments**
+ * Cluster 2: mostly Australian cities, plus states (Tasmania, NSW).
 
-After many more epochs of training, the clusters seem to be conceptually tighter and encode more complex concepts. First cluster is a collection of synonyms for "protests". Second is mostly cities in Australia, with the exception of Tasman(ia) and NSW, which are Australian states. Cluster 10 express verbs for making sound in an emotional way.
-
+ * Cluster 10: expressive verbs for emotional sounds.
 
 ### Without Regularization 
 
