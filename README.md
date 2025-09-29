@@ -117,34 +117,36 @@ We look for interpretable structures in the word embedding of the transformer at
 
 ### Without Regularization 
 
-### One epoch:
+#### One epoch:
 
-1: stopp spi convers consid schweinste mosqu vett contam venez magistr
+| **Cluster** | **Members**                                                                          |
+| ----------- | ------------------------------------------------------------------------------------ |
+| 1           | stopp, spi, convers, consid, schweinste, mosqu, vett, contam, venez, magistr         |
+| 2           | something, somet, whe, odd, wh, too, and, nothing, dig, eight                        |
+| 3           | 600, 900, 700, 400, 300, 450, 750, 800, 250, 350                                     |
+| 8           | july, august, october, february, december, november, september, january, june, april |
 
-2: something somet whe odd wh too and nothing dig eight
-
-3: 600 900 700 400 300 450 750 800 250 350
-
-8: july august october february december november september january june april
-
-**Comments**
-We observe a big difference in the clusters for the regularized and unregluarized models, espesially when trained for a short amount of time. Without regularization, the first two clusters are very semantically loose, more reminiscient of a "bag of words." Even worse, many of the members are not even full words, but rather subwords.
-
-As regularization decrease the effective dimmension of the embeddings and force more robust encoding, a tighter and more effective representation of the concepts is incentivied. Presumably, this increase the performance of the final model, as it can more easily correlate relevant concepts during inference. 
+#### Comments
+* Clear differences between regularized vs. unregularized clusters, especially after only one epoch.
+* Clusters 1 & 2 are semantically loose → more like “bag of words,” with many subwords instead of whole words.
+* Without regularization, embeddings spread across fragmented or noisy concepts.
+* Regularization reduces effective embedding dimensionality, encouraging tighter, more robust encodings, likely improving model performance by making relevant concepts easier to correlate at inference.
 
 ### Three Epochs:
 
-1: 600 900 400 450 350 700 750 250 300 800
-
-3: weekend's saturday's sunday's sundays thursday's friday's week's saturdays tuesday's wednesday's
-
-5: i ive im my we i'm i've i'd you id
-
-8: insects ants spiders insect bugs squirrel rats bees rept rabbits
+| **Cluster** | **Members**                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| 1           | 600, 900, 400, 450, 350, 700, 750, 250, 300, 800                                                          |
+| 3           | weekend's, saturday's, sunday's, sundays, thursday's, friday's, week's, saturdays, tuesday's, wednesday's |
+| 5           | i, ive, im, my, we, i'm, i've, i'd, you, id                                                               |
+| 8           | insects, ants, spiders, insect, bugs, squirrel, rats, bees, rept, rabbits                                 |
 
 **Comments**
-With more training, the clusters become more semantically tight, even when unregularized. For example, clusters of subwords are not to be found among top ten clusters. However, the clusters continue to be somewhat semantically diffuse. For example, cluster eight a is rought collection of creatures, pairing both "ants" and "spiders", but also "rats" and "squirrels". The cluster is perhaps reminiscent of a "vermin" cluster. However, "bees" are not typically though of as vermin.
-
+* After three epochs, clusters are semantically tighter, even unregularized.
+* Subword noise is largely gone.
+* Clusters still somewhat diffuse:
+* Cluster 8 = “creatures” / “vermin-like,” mixing insects (ants, spiders) with mammals (rats, squirrels) and outliers like bees (not vermin).
+* Suggests progress toward coherence, but without regularization, the boundaries between concepts remain more fuzzy.
 
 
 
