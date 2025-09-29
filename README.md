@@ -1,7 +1,7 @@
 # Summary and Elaboration
 We make a [from-scratch transformer](https://github.com/KristianWold/sum-and-elab/tree/main/src/transformer_kristianwold), built with PyTorch fundamentals and a custom optimization loop. This project is for educational purposes, and is neither fast, efficient nor high fidelity compared to state of the art solutions.
 
-The transformer is trained with unsupervised next-token prediction on the entire CNN and Daily Mail [dataset](https://arxiv.org/abs/1704.04368). This amounts to 287113 articles, around 1.3B characters. This data set features articles with highlights that summarize the body text, making it easy to make a language model (LM) for summerization (body text to highlight,) or elaboration (highlight to body text). This LM is trained to do both functions simultaneously.
+The transformer is trained with unsupervised next-token prediction on the entire CNN and Daily Mail [dataset](https://arxiv.org/abs/1704.04368). This amounts to 287113 articles, around 1.3B characters. This data set features articles with highlights that summarize the body text, making it simple to train a language model (LM) for doing summerization (body text to highlight,) or elaboration (highlight to body text). This LM is trained to do both functions simultaneously.
 
 This project also features several technical implementations, such as [data cleaning](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/training/data_cleaning.ipynb), a custom [BPE tokenizer](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/training/tokenize_corpus.ipynb) implemented in NumPy, proper handling of stop token causal masking and [interpretability](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/interpretability) analysis on the level of word embeddings. 
 
@@ -9,7 +9,7 @@ This project also features several technical implementations, such as [data clea
 ## Training
 Notebooks for training, including data cleaning and tokenization, can be found [here](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/training).
 
-The architecture features an embed size of 1152, with 18 transformer block layers, each with 18 attention heads. This totals around 316M parameters. We train the transformer on the whole of the predefined training set for up to five epochs. This took approximatly 35 hours on a RTX4080 16GB ram GPU.
+The architecture features an embed size of 1152, with 18 transformer block layers, each with 18 attention heads. This totals around 316M parameters. To decrease vocabulary size, we make use of lower-case text only and remove standardize all non-standard ASCII characters. Generally, a fairly limited amount semantic meaning is lost in this process for most text, while slicing roughtly half of the needed unique tokens. The corpus is then tokenized with BPE, creating rougly 24k unique tokens. We train the transformer on the whole of the predefined training corpus for up to five epochs. This took approximatly 35 hours on a RTX4080 16GB ram GPU.
 
 ## Inference
 
