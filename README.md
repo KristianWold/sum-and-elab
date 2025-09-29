@@ -144,7 +144,7 @@ We look for interpretable structures in the word embedding of the transformer at
 **Comments**
 * After three epochs, clusters are semantically tighter, even unregularized.
 * Subword noise is largely gone.
-* Clusters still somewhat diffuse:
+* Clusters still somewhat diffuse.
 * Cluster 8 = “creatures” / “vermin-like,” mixing insects (ants, spiders) with mammals (rats, squirrels) and outliers like bees (not vermin).
 * Suggests progress toward coherence, but without regularization, the boundaries between concepts remain more fuzzy.
 
