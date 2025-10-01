@@ -9,11 +9,11 @@ This project also features several technical implementations, such as [data clea
 ## Training
 Notebooks for training, including data cleaning and tokenization, can be found [here](https://github.com/KristianWold/sum-and-elab/tree/main/notebooks/training).
 
-The architecture features an embed size of 1152, with 18 transformer block layers, each with 18 attention heads. This totals around 316M parameters. To decrease vocabulary size, we make use of lower-case text only and remove standardize all non-standard ASCII characters. Generally, a fairly limited amount semantic meaning is lost in this process for most text, while slicing roughtly half of the needed unique tokens. The corpus is then tokenized with BPE, creating rougly 24k unique tokens. We train the transformer on the whole of the predefined training corpus for up to five epochs. This took approximatly 35 hours on a RTX4080 16GB ram GPU.
+The architecture features an embed size of 1152, with 18 transformer block layers, each with 18 attention heads. This totals around 316M parameters. To decrease vocabulary size, we make use of lower-case text only and standardize all non-standard ASCII characters. Generally, a fairly limited amount semantic meaning is lost in this process for most text, while slicing roughtly half of the needed unique tokens. The corpus is then tokenized with BPE, creating vocabulary of rougly 24k tokens. We train the transformer on the whole of the predefined training corpus for up to five epochs. This took approximatly 35 hours on an RTX4080 with 16GB ram GPU.
 
 ## Inference
 
-We test the model on out-of-distribution text fetched from the test corpus. The model predicts highlights from articles, and vise versa.
+We test the model on out-of-distribution text fetched from the test corpus. We let the model predict highlights from articles, and vise versa.
 
 See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/README.md) for more results and discussion. The articles tested were chosen for briefness, but has otherwise not been cherry picked. 
 
