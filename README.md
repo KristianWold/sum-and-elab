@@ -72,7 +72,7 @@ We compute and rank the Cosine Similariy score of " luton" to the vocabulary. " 
 
 ### Conflating Sierra Leone with Liberia
 
-Even closer, " sierra" and " liberia" score rank two and 15 with respect to each other, making them very close in terms of embeddings. Thus, the model can likely easily conflate them, as observed. Why are the embeddings not more distinct in practice, being separate countries? Relations are learned through the data, and we can hypothesise that the training corpus don't substantiate the distinction enough to produce more different embeddings. Checking the training corpus, we find that Sierra Leone and Liberia were mentioned only 3300 and 4600 times, respectivly, compared to 80 500 mentiones for England and 86 000 for USAS.
+Even closer, " sierra" and " liberia" score rank two and 15 with respect to each other, making them very close in terms of embeddings. Thus, the model can likely easily conflate them, as observed. Why are the embeddings not more distinct in practice, being separate countries? Relations are learned through the data, and we can hypothesise that the training corpus don't substantiate the distinction enough to produce more different embeddings. Checking the training corpus, we find that Sierra Leone and Liberia were mentioned only 3300 and 4600 times, respectivly, compared to 80 500 mentiones for England and 86 000 for USA.
 
 ### Inventing that an actual terrorist suspect was from Syria.
 
