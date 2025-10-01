@@ -15,7 +15,7 @@ The architecture features an embed size of 1152, with 18 transformer block layer
 
 We test the model on out-of-distribution text fetched from the test corpus. The model predicts highlights from articles, and vise versa.
 
-See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/readme.md) for more results and discussion. The articles tested were chosen for briefness, but has otherwise not been cherry picked. 
+See the [notebook](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/test_data.ipynb) for details about inference, and [here](https://github.com/KristianWold/sum-and-elab/blob/main/notebooks/inference/README.md) for more results and discussion. The articles tested were chosen for briefness, but has otherwise not been cherry picked. 
 
 ## Ebola Infection Story
 The following is a CNN news article about the spreading of the Ebola virus.
@@ -66,11 +66,17 @@ When predicting highlights and articles on test data, the model did several inte
 
 Since these inferences can't be localized directly from the test data, we investigate the word embeddings of the model to see if we can explain the interesting inferences. Specifically, we check Cosine Similarity to measure closeness in encoding between target word embeddings with the embeddings of the whole model vocabulary. Since identical encodings yield identical model inferences, similar encodings likely invoke similar behavior. 
 
+### Correctly inferring that Luton is in London
+
 We compute and rank the Cosine Similariy score of " luton" to the vocabulary. " londons" and " london's" score rank 201 and 298 out of 24k, showing they are significantly more correlated than most of the vocabulary. Conversely, " luton" score rank 140 with respect to " london". Thus, Luton and London have in terms of embedding substantial overlap of information, showing how the model might derived one from the other.
+
+### Conflating Sierra Leone with Liberia
 
 Even closer, " sierra" and " liberia" score rank two and 15 with respect to each other, making them very close in terms of embeddings. This closeness model can likely easily conflate them, as observed. Why are they not more distinct, being separate countries? Relations are learned through the data. We can hypothesise that the training corpus don't substantiate the distinction enough to produce more different embeddings. Checking the training corpus, we find that Sierra Leone and Liberia were mentioned only 3300 and 4600 times, respectivly, compared to 80 500 mentiones for England and 86 000 for USAS.
 
-Finally, " syria" and " terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" score high rank with many typically middle eastern associated concepts, such as "jihadist" at rank five, and "islamist" at rank 11. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in and relating to the Middle East, providing data to support such correlations in the model. Inspectig the corpus, we find that Syria and "terror" are mentioned 9900 and 21800 times, with a high co-occurance of 4000. This likely leads to similar learned embeddings, connecting the concepts in the behavior of the model. While the data in itself is not erronous, the correlations are derived through a specific lens set by the reporting of these newspapers. From the predicted article, we observe that this can manifest as extrapolations, resulting in claims that does not generally reflect upon reality, such as the terrorist hailing from Syria. These are typically called transformer hallucinations. 
+### Inventing that an actual terrorist suspect was from Syria.
+
+Finally, " syria" and " terror" (and variations such terrorist and terrorism) score ranks 130, 186 and 189, and 229. In addition, "terror" score high rank with many typically middle eastern associated concepts, such as "jihadist" at rank five, and "islamist" at rank 11. Likely, CNN and Daily Mail report on a lot of conflict and terrorism in and relating to the Middle East, providing data to support such correlations in the model. [Inspectig the corpus], we find that Syria and "terror" are mentioned 9900 and 21800 times, with a high co-occurance of 4000. This likely leads to similar learned embeddings, connecting the concepts in the behavior of the model. While the data in itself is not erronous, the correlations are derived through a specific lens set by the reporting of these newspapers. From the predicted article, we observe that this can manifest as extrapolations in the form of claims that does not generally reflect upon reality, such as the terrorist hailing from Syria. These are typically called transformer hallucinations. 
 
 ## Word Clustering
 
